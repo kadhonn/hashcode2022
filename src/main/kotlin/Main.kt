@@ -3,17 +3,45 @@ import java.util.Scanner
 
 fun main() {
     doRun("a_an_example.in.txt")
-//    doRun("b_better_start_small.in.txt")
-//    doRun("f_find_great_mentors.in.txt")
+    doRun("b_better_start_small.in.txt")
+    doRun("c_collaboration.in.txt")
+    doRun("d_dense_schedule.in.txt")
+    doRun("e_exceptional_skills.in.txt")
+    doRun("f_find_great_mentors.in.txt")
 }
 
 fun solve(contributors: MutableList<Contributor>, projects: MutableList<Project>): List<Assignment> {
 
-    
+    val assignments = mutableListOf<Assignment>()
+
+    for (project in projects.sortedBy { it.score }.reversed()) {
+        val roles = mutableListOf<String>()
+
+        roles@ for (role in project.roles) {
+            for (contributor in contributors) {
+                if (roles.contains(contributor.name)) {
+                    continue
+                }
+                if (contributor.skills.containsKey(role.first)) {
+                    if (contributor.skills[role.first]!! >= role.second) {
+                        roles.add(contributor.name)
+                    }
+                    continue@roles
+                }
+            }
+            break
+        }
+        if (project.roles.size == roles.size) {
+            assignments.add(Assignment(project.name, roles))
+        }
+    }
+
+    return assignments
 
 }
 
 fun doRun(example: String) {
+    println("String example: $example")
     val scanner = Scanner(ClassLoader.getSystemClassLoader().getResourceAsStream(example)!!)
 
     val (contributors, projects) = parseInput(scanner)
