@@ -20,6 +20,7 @@ fun solve(contributors: MutableList<Contributor>, projects: MutableList<Project>
     val finishing = mutableMapOf<Int, Set<Contributor>>()
     finishing[0] = contributors.toSet()
     var day = -1
+    val avgDays = projects.map { it.days }.average().toInt()
 
     while (projectsToDo.isNotEmpty() && finishing.isNotEmpty()) {
         println("projects to do: ${projectsToDo.size}")
@@ -27,8 +28,8 @@ fun solve(contributors: MutableList<Contributor>, projects: MutableList<Project>
         availableContributors.addAll(finishing.remove(day)!!)
         projectsToDo = projectsToDo.filter { it.score(day) > 0 }.toMutableSet()
 
-//        for (project in projectsToDo.sortedBy { it.score(day) }) {
-        for (project in projectsToDo.sortedBy { it.bestBefore }) {
+        for (project in projectsToDo.sortedBy { it.score(day+avgDays) }) {
+//        for (project in projectsToDo.sortedBy { it.bestBefore }) {
             val roles = mutableListOf<Contributor>()
 
             roles@ for (role in project.roles) {
