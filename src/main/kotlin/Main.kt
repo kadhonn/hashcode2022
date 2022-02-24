@@ -7,8 +7,8 @@ fun main() {
     doRun("b_better_start_small.in.txt")
     doRun("c_collaboration.in.txt")
     doRun("d_dense_schedule.in.txt")
-    doRun("e_exceptional_skills.in.txt")
-    doRun("f_find_great_mentors.in.txt")
+//    doRun("e_exceptional_skills.in.txt")
+//    doRun("f_find_great_mentors.in.txt")
 }
 
 fun solve(contributors: MutableList<Contributor>, projects: MutableList<Project>): List<Assignment> {
@@ -20,7 +20,6 @@ fun solve(contributors: MutableList<Contributor>, projects: MutableList<Project>
     val finishing = mutableMapOf<Int, Set<Contributor>>()
     finishing[0] = contributors.toSet()
     var day = -1
-    val avgDays = projects.map { it.days }.average().toInt()
 
     while (projectsToDo.isNotEmpty() && finishing.isNotEmpty()) {
         println("projects to do: ${projectsToDo.size}")
@@ -28,36 +27,62 @@ fun solve(contributors: MutableList<Contributor>, projects: MutableList<Project>
         availableContributors.addAll(finishing.remove(day)!!)
         projectsToDo = projectsToDo.filter { it.score(day) > 0 }.toMutableSet()
 
-        for (project in projectsToDo.sortedBy { it.score(day+avgDays) }) {
-//        for (project in projectsToDo.sortedBy { it.bestBefore }) {
-            val roles = mutableListOf<Contributor>()
+//        for (project in projectsToDo.sortedBy { it.score(day) }) {
+//        for (project in projectsToDo.sortedBy { it.bestBefore - (day + it.days) }) {
+        for (project in projectsToDo.sortedBy { it.bestBefore }) {
+            val roles = mutableMapOf<Int, Contributor>()
+            val canBeMentored = mutableSetOf<String>()
 
-            roles@ for (role in project.roles) {
-                val possibleContributors = mutableSetOf<Contributor>()
-                for (contributor in availableContributors) {
-                    if (roles.contains(contributor)) {
+            var addedRole = true
+            while (addedRole) {
+                addedRole = false
+                roles@ for (roleI in project.roles.indices) {
+                    if (roles.containsKey(roleI)) {
                         continue
                     }
-                    if (contributor.skills.containsKey(role.first)) {
-                        if (contributor.skills[role.first]!! >= role.second) {
-                            possibleContributors.add(contributor)
+                    val role = project.roles[roleI]
+                    val possibleContributors = mutableSetOf<Contributor>()
+                    for (contributor in availableContributors) {
+                        if (roles.values.contains(contributor)) {
+                            continue
+                        }
+                        if (contributor.skills.containsKey(role.first)) {
+                            if (contributor.skills[role.first]!! + (if (canBeMentored.contains(role.first)) 1 else 0) >= role.second) {
+                                possibleContributors.add(contributor)
+                            }
                         }
                     }
+                    if (possibleContributors.isNotEmpty()) {
+                        val c = possibleContributors.minByOrNull { it.skills[role.first]!! }!!
+                        for (s in c.skills) {
+                            var found = false
+                            var tooSmall = false
+                            for (r in project.roles) {
+                                if (s.key == r.first && s.value >= r.second) {
+                                    found = true
+                                }
+                                if (s.key == r.first && s.value < r.second) {
+                                    tooSmall = true
+                                }
+                            }
+                            if (found && !tooSmall) {
+                                canBeMentored.add(s.key)
+                            }
+                        }
+                        roles[roleI] = c
+                        addedRole = true
+                    }
                 }
-                if (possibleContributors.isEmpty()) {
-                    break
-                }
-                roles.add(possibleContributors.minByOrNull { it.skills[role.first]!! }!!)
             }
             if (project.roles.size == roles.size) {
                 projectsToDo.remove(project)
-                assignments.add(Assignment(project.name, roles.map { it.name }))
-                finishing.compute(project.days + day) { _, c -> if (c != null) c.union(roles) else roles.toSet() }
-                availableContributors.removeAll(roles.toSet())
-                for (i in roles.indices) {
+                assignments.add(Assignment(project.name, roles.entries.sortedBy { it.key }.map { it.value.name }))
+                finishing.compute(project.days + day) { _, c -> if (c != null) c.union(roles.values) else roles.values.toSet() }
+                availableContributors.removeAll(roles.values.toSet())
+                for (i in roles.keys) {
                     val role = project.roles[i]
-                    if (roles[i].skills[role.first]!! <= role.second) {
-                        roles[i].skills[role.first] = roles[i].skills[role.first]!! + 1
+                    if (roles[i]!!.skills[role.first]!! <= role.second) {
+                        roles[i]!!.skills[role.first] = roles[i]!!.skills[role.first]!! + 1
                     }
                 }
             }
