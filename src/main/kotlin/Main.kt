@@ -1,5 +1,6 @@
 import java.io.File
 import java.util.Scanner
+import kotlin.math.max
 
 fun main() {
     doRun("a_an_example.in.txt")
@@ -14,25 +15,47 @@ fun solve(contributors: MutableList<Contributor>, projects: MutableList<Project>
 
     val assignments = mutableListOf<Assignment>()
 
-    for (project in projects.sortedBy { it.score }.reversed()) {
-        val roles = mutableListOf<String>()
+    var projectsToDo = projects.toMutableSet()
+    val availableContributors = mutableSetOf<Contributor>()
+    val finishing = mutableMapOf<Int, Set<Contributor>>()
+    finishing[0] = contributors.toSet()
+    var day = -1
 
-        roles@ for (role in project.roles) {
-            for (contributor in contributors) {
-                if (roles.contains(contributor.name)) {
-                    continue
-                }
-                if (contributor.skills.containsKey(role.first)) {
-                    if (contributor.skills[role.first]!! >= role.second) {
-                        roles.add(contributor.name)
+    while (projectsToDo.isNotEmpty() && finishing.isNotEmpty()) {
+        day = finishing.keys.minOrNull()!!
+        availableContributors.addAll(finishing.remove(day)!!)
+        projectsToDo = projectsToDo.filter { it.score(day) > 0 }.toMutableSet()
+
+//        for (project in projectsToDo.sortedBy { it.score(day) }) {
+        for (project in projectsToDo.sortedBy { it.bestBefore }) {
+            val roles = mutableListOf<Contributor>()
+
+            roles@ for (role in project.roles) {
+                for (contributor in availableContributors) {
+                    if (roles.contains(contributor)) {
+                        continue
                     }
-                    continue@roles
+                    if (contributor.skills.containsKey(role.first)) {
+                        if (contributor.skills[role.first]!! >= role.second) {
+                            roles.add(contributor)
+                        }
+                        continue@roles
+                    }
+                }
+                break
+            }
+            if (project.roles.size == roles.size) {
+                projectsToDo.remove(project)
+                assignments.add(Assignment(project.name, roles.map { it.name }))
+                finishing.compute(project.days + day) { _, c -> if (c != null) c.union(roles) else roles.toSet() }
+                availableContributors.removeAll(roles.toSet())
+                for (i in roles.indices) {
+                    val role = project.roles[i]
+                    if (roles[i].skills[role.first]!! <= role.second) {
+                        roles[i].skills[role.first] = roles[i].skills[role.first]!! + 1
+                    }
                 }
             }
-            break
-        }
-        if (project.roles.size == roles.size) {
-            assignments.add(Assignment(project.name, roles))
         }
     }
 
@@ -41,7 +64,7 @@ fun solve(contributors: MutableList<Contributor>, projects: MutableList<Project>
 }
 
 fun doRun(example: String) {
-    println("String example: $example")
+    println("Doing example: $example")
     val scanner = Scanner(ClassLoader.getSystemClassLoader().getResourceAsStream(example)!!)
 
     val (contributors, projects) = parseInput(scanner)
@@ -114,6 +137,10 @@ class Project(
 ) {
     override fun toString(): String {
         return "Project(name='$name', days=$days, score=$score, bestBefore=$bestBefore, roles=$roles)"
+    }
+
+    fun score(day: Int): Int {
+        return max(0, score - max(0, day + days - bestBefore))
     }
 }
 
