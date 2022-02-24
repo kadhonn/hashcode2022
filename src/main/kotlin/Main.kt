@@ -1,3 +1,4 @@
+import java.io.File
 import java.util.Scanner
 
 fun main() {
@@ -6,14 +7,41 @@ fun main() {
 //    doRun("f_find_great_mentors.in.txt")
 }
 
+fun solve(contributors: MutableList<Contributor>, projects: MutableList<Project>): List<Assignment> {
+
+    
+
+}
+
 fun doRun(example: String) {
     val scanner = Scanner(ClassLoader.getSystemClassLoader().getResourceAsStream(example)!!)
 
     val (contributors, projects) = parseInput(scanner)
 
-    println(contributors)
-    println(projects)
+    val solution = solve(contributors, projects)
 
+    printSolution(solution, example)
+}
+
+fun printSolution(solution: List<Assignment>, example: String) {
+    val sb = StringBuilder()
+    sb.appendLine(solution.size)
+    for (a in solution) {
+        sb.appendLine(a.project)
+        for (c in a.contributors) {
+            sb.append(c)
+            sb.append(" ")
+        }
+        sb.setLength(sb.length - 1)
+        sb.appendLine()
+    }
+    File("out\\$example").writeText(sb.toString())
+}
+
+class Assignment(val project: String, val contributors: List<String>) {
+    override fun toString(): String {
+        return "Assignment(project='$project', contributors=$contributors)"
+    }
 }
 
 private fun parseInput(scanner: Scanner): Pair<MutableList<Contributor>, MutableList<Project>> {
@@ -40,17 +68,22 @@ private fun parseInput(scanner: Scanner): Pair<MutableList<Contributor>, Mutable
         val score = scanner.nextInt()
         val bestBefore = scanner.nextInt()
         val r = scanner.nextInt()
-        val roles = mutableMapOf<String, Int>()
+        val roles = mutableListOf<Pair<String, Int>>()
         for (j in 1..r) {
-            roles[scanner.next()] = scanner.nextInt()
+            roles.add(Pair(scanner.next(), scanner.nextInt()))
         }
         projects.add(Project(name, days, score, bestBefore, roles))
     }
     return Pair(contributors, projects)
 }
 
-class Project(val name: String, val days: Int, val score: Int, val bestBefore: Int, val roles: Map<String, Int>) {
-
+class Project(
+    val name: String,
+    val days: Int,
+    val score: Int,
+    val bestBefore: Int,
+    val roles: List<Pair<String, Int>>
+) {
     override fun toString(): String {
         return "Project(name='$name', days=$days, score=$score, bestBefore=$bestBefore, roles=$roles)"
     }
