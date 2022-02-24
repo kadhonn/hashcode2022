@@ -22,6 +22,7 @@ fun solve(contributors: MutableList<Contributor>, projects: MutableList<Project>
     var day = -1
 
     while (projectsToDo.isNotEmpty() && finishing.isNotEmpty()) {
+        println("projects to do: ${projectsToDo.size}")
         day = finishing.keys.minOrNull()!!
         availableContributors.addAll(finishing.remove(day)!!)
         projectsToDo = projectsToDo.filter { it.score(day) > 0 }.toMutableSet()
@@ -31,18 +32,21 @@ fun solve(contributors: MutableList<Contributor>, projects: MutableList<Project>
             val roles = mutableListOf<Contributor>()
 
             roles@ for (role in project.roles) {
+                val possibleContributors = mutableSetOf<Contributor>()
                 for (contributor in availableContributors) {
                     if (roles.contains(contributor)) {
                         continue
                     }
                     if (contributor.skills.containsKey(role.first)) {
                         if (contributor.skills[role.first]!! >= role.second) {
-                            roles.add(contributor)
+                            possibleContributors.add(contributor)
                         }
-                        continue@roles
                     }
                 }
-                break
+                if (possibleContributors.isEmpty()) {
+                    break
+                }
+                roles.add(possibleContributors.minByOrNull { it.skills[role.first]!! }!!)
             }
             if (project.roles.size == roles.size) {
                 projectsToDo.remove(project)
